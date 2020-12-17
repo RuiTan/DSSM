@@ -1,4 +1,4 @@
-from deeplab_v3 import Deeplab_v3
+from deeplab_v3_plus import Deeplab_v3
 from data_utils import DataSet
 
 
@@ -14,7 +14,7 @@ from predicts_utils import test_images_predict
 
 from metric_utils import iou
 
-ds = 'potsdam/'
+classes='zurich/'
 
 class args:
     batch_size = 16
@@ -38,8 +38,8 @@ for key in args.__dict__:
         print(key + ' ' * offset, args.__dict__[key])
 
 # 使用那一块显卡
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-data_home = '../../data/' + ds
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+data_home = '../../data/' + ds + '/'
 data_path_df = pd.read_csv(data_home + 'path_list.csv')
 data_path_df = data_path_df.sample(frac=1) # 第一次打乱
 
