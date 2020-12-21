@@ -10,19 +10,9 @@ def color_predicts(img):
     return label_to_color(img)
 
 def color_annotation(label_path, output_path):
-
-    '''
-
-    给class图上色
-
-    '''
-
     img = cv2.imread(label_path,cv2.CAP_OPENNI_GRAY_IMAGE)
-
     color = label_to_color(img)
-
     cv2.imwrite(output_path,color)
-
 
 def label_to_color(img: np.ndarray) -> np.ndarray:
     color = np.ones([img.shape[0], img.shape[1], 3])

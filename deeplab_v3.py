@@ -12,7 +12,9 @@ from tensorflow.python.training import moving_averages
 
 import tensorflow.compat.v1 as tf
 
-classes = 6
+classes = 9
+type = 1
+input_type = ['rgb', 'nir', 'rgbnir']
 
 
 class Deeplab_v3():
@@ -33,7 +35,11 @@ class Deeplab_v3():
         """Build the core model within the graph"""
         with tf.variable_scope('resnet_v2_50', reuse=tf.AUTO_REUSE):
             size = tf.shape(x)[1:3]
-
+            if type == 0:
+                x = x[:,:,0:3]
+            elif type == 1:
+                x = x[:,:,3]
+                x = tf.expand_dims(x, 3)
             # x = x - [_R_MEAN, _G_MEAN, _B_MEAN]
 
             x = self._conv(x, 7, 64, 2, 'conv1', False, False)

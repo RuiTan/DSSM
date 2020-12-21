@@ -13,8 +13,8 @@ size = 256
 # size = 512
 # data_home = 'dataset/scale/potsdam/'
 # data_home = 'dataset/noscale/potsdam/'
-# data_home = '../../data/potsdam/'
-data_home = '../../data/zurich/'
+data_home = '../../data/potsdam/'
+# data_home = '../../data/zurich/'
 
 def write_tiff(tiff_file, image):
     out = TIFF.open(tiff_file, mode='w')

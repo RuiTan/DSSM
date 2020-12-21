@@ -2,6 +2,7 @@ import os
 
 import cv2
 import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 from libtiff import TIFF
 from metric_utils import iou
 from predicts_utils import total_image_predict
@@ -17,24 +18,21 @@ from tqdm import tqdm
 import datetime
 from predicts_utils import read_tiff_img
 
+ds = 'zurich/'
+model_path = '1216_rgbnir_plus-50000'
+
 class args:
     batch_size = 16
     lr = 2e-4
     test_display = 500
     weight_decay = 5e-4
-    model_name = 'deeplab_v3_plus_20200809-50000'
+    model_name = ds + model_path
     batch_norm_decay = 0.95
-    test_image_path = 'dataset/test/images/'
-    test_label_path = 'dataset/test/labels/'
     multi_scale = False  # 是否多尺度预测
-    gpu_num = 2
+    gpu_num = 0
     pretraining = True
-    # origin_image_path = 'dataset/origin/images/'
-    # origin_image_path = '/home/gpu/tanrui/tanrui/data/ftp.ipi.uni-hannover.de/ISPRS_BENCHMARK_DATASETS/Potsdam/4_Ortho_RGBIR/'
-    origin_image_path = 'dataset/scale/potsdam/images/'
-    # origin_image_path = '/home/gpu/tanrui/liebling_classify/'
-    # origin_image_path = 'dataset/origin/'
-    origin_label_path = 'dataset/origin/labels/'
+    origin_image_path = '../../data/' + ds + 'images/'
+    origin_label_path = '../../data/' + ds + 'labels/'
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu_num
 
@@ -81,7 +79,7 @@ def crops_predict(source_image_path: str,
     # source_image = cv2.imread(source_image_path)
     # source_image = TIFF.open(source_image_path, mode='r').read_image()
     source_image,_ = read_tiff_img(source_image_path)
-    source_image = tiff_change_color(source_image)
+    # source_image = tiff_change_color(source_image)
     height = source_image.shape[0]
     width = source_image.shape[1]
     h_step = height // 128
@@ -180,8 +178,8 @@ def write_predict_result(filename: str, img: str, label: str, predict_func, inpu
 
 
 saver = tf.train.import_meta_graph('model/' + args.model_name + '.meta')
-predict_prefix = 'potsdam_scale_0810/'
-predict_path = 'predict/' + args.model_name + '/' + predict_prefix
+# predict_prefix = 'potsdam_scale_0810/'
+predict_path = '../../data/' + ds + 'predict/' + model_path + '/'
 if not os.path.exists(predict_path): os.makedirs(predict_path)
 
 with tf.Session() as sess:
@@ -200,11 +198,11 @@ with tf.Session() as sess:
     #                 'top_potsdam_5_13_RGBIR.tif','top_potsdam_5_14_RGBIR.tif','top_potsdam_5_15_RGBIR.tif']
     # write_images = ['Fused.tiff','Origin.tiff','Processed.tiff']
     # write_images = ['PNN_up_img1.tiff','1_MS_cut.tiff']
-    total_iou = []
+    # total_iou = []
     for i in tqdm(write_images):
-        write_predict_result(filename='%s%s_%d_crop_unit8_predict_20200809.png' % (predict_path, i, 40000),
+        write_predict_result(filename=predict_path + i + '.png',
                              img=args.origin_image_path + i,
-                             label=args.origin_label_path + str(i).split('.')[0][2:] + '.png',
+                             label=args.origin_label_path + str(i).replace('RGBIR.tif', 'label.png'),
                              predict_func=crops_predict,
                              input_placeholder=image,
                              logits_prob_node=logits_prob,
