@@ -9,8 +9,12 @@ from __future__ import division
 from __future__ import print_function
 from tensorflow.python.training import moving_averages
 
+
 import tensorflow.compat.v1 as tf
 
+classes = 9
+type = 1
+input_type = ['rgb', 'nir', 'rgbnir']
 
 class Deeplab_v3():
     def __init__(self,
@@ -28,30 +32,13 @@ class Deeplab_v3():
 
     def forward_pass(self, x):
         """Build the core model within the graph"""
-        x1, size, x1_low, low_size = self.channel_res(x[:,:,:,0], 'x1_resnet')
-        x2, _, x2_low, _ = self.channel_res(x[:,:,:,1], 'x2_resnet')
-        x3, _, x3_low, _ = self.channel_res(x[:,:,:,2], 'x3_resnet')
-        x4, _, x4_low, _ = self.channel_res(x[:,:,:,3], 'x4_resnet')
-
-        # DeepLab_v3的部分
-        with tf.variable_scope('DeepLab_v3', reuse=tf.AUTO_REUSE):
-            x1_aspp = tf.image.resize_bilinear(self._atrous_spatial_pyramid_pooling(x1), low_size)
-            x2_aspp = tf.image.resize_bilinear(self._atrous_spatial_pyramid_pooling(x2), low_size)
-            x3_aspp = tf.image.resize_bilinear(self._atrous_spatial_pyramid_pooling(x3), low_size)
-            x4_aspp = tf.image.resize_bilinear(self._atrous_spatial_pyramid_pooling(x4), low_size)
-
-            net = tf.concat([x1_low, x2_low, x3_low, x4_low, x1_aspp, x2_aspp, x3_aspp, x4_aspp], axis=3, name='concat')
-            net = self._conv(net, 3, 256, 1, 'conv_3x3_1')
-            net = self._conv(net, 3, 256, 1, 'conv_3x3_2')
-            x = self._conv(net, 1, 9, 1, 'logits', False, False)
-            x = tf.image.resize_bilinear(x, size)
-            return x
-
-    def channel_res(self, x, scope):
-        with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
-            x = tf.expand_dims(x, 3)
+        with tf.variable_scope('resnet_v2_50', reuse=tf.AUTO_REUSE):
             size = tf.shape(x)[1:3]
-
+            if type == 0:
+                x = x[:,:,:,0:3]
+            elif type == 1:
+                x = x[:,:,:,3]
+                x = tf.expand_dims(x, 3)
             # x = x - [_R_MEAN, _G_MEAN, _B_MEAN]
 
             x = self._conv(x, 7, 64, 2, 'conv1', False, False)
@@ -72,8 +59,17 @@ class Deeplab_v3():
                             else:
                                 x = res_func(x, self.filters[i+1], self.filters[i+1], 1)
                 tf.logging.info('the shape of features after block%d is %s' % (i+1, x.get_shape()))
-        return x, size, low_level_feature, low_level_feature_size
 
+        # DeepLab_v3的部分
+        with tf.variable_scope('DeepLab_v3', reuse=tf.AUTO_REUSE):
+            x = self._atrous_spatial_pyramid_pooling(x)
+            upsample1 = tf.image.resize_bilinear(x, low_level_feature_size, name='upsampling1')
+            net = tf.concat([upsample1, low_level_feature], axis=3, name='concat')
+            net = self._conv(net, 3, 256, 1, 'conv_3x3_1')
+            net = self._conv(net, 3, 256, 1, 'conv_3x3_2')
+            x = self._conv(net, 1, classes, 1, 'logits', False, False)
+            x = tf.image.resize_bilinear(x, size)
+            return x
     def _A_ASPP(self):
         pass
     def _atrous_spatial_pyramid_pooling(self, x):
@@ -138,12 +134,8 @@ class Deeplab_v3():
         """Convolution."""
         with tf.variable_scope(scope):
             x_shape = x.get_shape().as_list()
-            if len(x_shape) <= 3:
-                channel_3 = 1
-            else:
-                channel_3 = x_shape[3]
             w = tf.get_variable(name='weights',
-                                shape=[kernel_size, kernel_size, channel_3, filters])
+                                shape=[kernel_size, kernel_size, x_shape[3], filters])
             if rate == None:
                 x = tf.nn.conv2d(input=x,
                                  filter=w,

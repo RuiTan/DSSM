@@ -13,9 +13,9 @@ from tensorflow.python.training import moving_averages
 import tensorflow.compat.v1 as tf
 
 classes = 9
-type = 1
+type = 2
 input_type = ['rgb', 'nir', 'rgbnir']
-
+SSM = True
 
 class Deeplab_v3():
     def __init__(self,
@@ -31,14 +31,26 @@ class Deeplab_v3():
         self.strides = [2, 2, 1, 1]
         self.n = [3, 4, 6, 3]
 
+    def SSM(self, x):
+        r = tf.expand_dims(x[:,:,:,0], 3)
+        r = self._conv(r, 7, 64, 2, 'ssm_1', False, False)
+        g = tf.expand_dims(x[:,:,:,1], 3)
+        g = self._conv(g, 7, 64, 2, 'ssm_2', False, False)
+        b = tf.expand_dims(x[:,:,:,2], 3)
+        b = self._conv(b, 7, 64, 2, 'ssm_3', False, False)
+        nir = tf.expand_dims(x[:,:,:,3], 3)
+        nir = self._conv(nir, 7, 64, 2, 'ssm_4', False, False)
+        x = tf.concat([r,g,b,nir], axis=3, name='ssm_concat')
+        return self._conv(x, 1, 64, 1, 'ssm_5', False, False)
+
     def forward_pass(self, x):
         """Build the core model within the graph"""
         with tf.variable_scope('resnet_v2_50', reuse=tf.AUTO_REUSE):
             size = tf.shape(x)[1:3]
             if type == 0:
-                x = x[:,:,0:3]
+                x = x[:,:,:,0:3]
             elif type == 1:
-                x = x[:,:,3]
+                x = x[:,:,:,3]
                 x = tf.expand_dims(x, 3)
             # x = x - [_R_MEAN, _G_MEAN, _B_MEAN]
 
