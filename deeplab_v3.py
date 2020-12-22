@@ -15,7 +15,7 @@ import tensorflow.compat.v1 as tf
 classes = 9
 type = 2
 input_type = ['rgb', 'nir', 'rgbnir']
-SSM = True
+ssm = True
 
 class Deeplab_v3():
     def __init__(self,
@@ -52,6 +52,8 @@ class Deeplab_v3():
             elif type == 1:
                 x = x[:,:,:,3]
                 x = tf.expand_dims(x, 3)
+            if ssm:
+                x = self.SSM(x)
             # x = x - [_R_MEAN, _G_MEAN, _B_MEAN]
 
             x = self._conv(x, 7, 64, 2, 'conv1', False, False)

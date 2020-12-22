@@ -21,7 +21,7 @@ class args:
     lr = 2e-4
     test_display = 100
     weight_decay = 5e-4
-    model_name = '1221nir'
+    model_name = '1221rgbnir_ssm'
     batch_norm_decay = 0.95
     multi_scale = True # 是否多尺度预测
     gpu_num = 1
@@ -144,5 +144,5 @@ if __name__ == '__main__':
                 summary_writer.add_summary(test_summary, step)
                 summary_writer.flush()
 
-            if step == 40000 or step == 50000:
+            if step == 1000 or step == 40000 or step == 50000: 
                 saver.save(sess, args.save_model, global_step=step)
