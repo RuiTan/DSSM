@@ -18,8 +18,8 @@ from tqdm import tqdm
 import datetime
 from predicts_utils import read_tiff_img
 
-ds = 'zurich/'
-model_path = '1216_rgbnir_plus-50000'
+ds = 'potsdam/'
+model_path = '1222_nir-50000'
 
 class args:
     batch_size = 16
@@ -29,7 +29,7 @@ class args:
     model_name = ds + model_path
     batch_norm_decay = 0.95
     multi_scale = False  # 是否多尺度预测
-    gpu_num = 0
+    gpu_num = 1
     pretraining = True
     origin_image_path = '../../data/' + ds + 'images/'
     origin_label_path = '../../data/' + ds + 'labels/'
@@ -79,6 +79,7 @@ def crops_predict(source_image_path: str,
     # source_image = cv2.imread(source_image_path)
     # source_image = TIFF.open(source_image_path, mode='r').read_image()
     source_image,_ = read_tiff_img(source_image_path)
+    print(source_image.shape)
     # source_image = tiff_change_color(source_image)
     height = source_image.shape[0]
     width = source_image.shape[1]
@@ -179,7 +180,7 @@ def write_predict_result(filename: str, img: str, label: str, predict_func, inpu
 
 saver = tf.train.import_meta_graph('model/' + args.model_name + '.meta')
 # predict_prefix = 'potsdam_scale_0810/'
-predict_path = '../../data/' + ds + 'predict/' + model_path + '/'
+predict_path = '../../data/' + ds + 'result/' + model_path + '/'
 if not os.path.exists(predict_path): os.makedirs(predict_path)
 
 with tf.Session() as sess:
@@ -200,7 +201,7 @@ with tf.Session() as sess:
     # write_images = ['PNN_up_img1.tiff','1_MS_cut.tiff']
     # total_iou = []
     for i in tqdm(write_images):
-        write_predict_result(filename=predict_path + i + '.png',
+        write_predict_result(filename=predict_path + model_path.split('-')[0] + i + '.png',
                              img=args.origin_image_path + i,
                              label=args.origin_label_path + str(i).replace('RGBIR.tif', 'label.png'),
                              predict_func=crops_predict,

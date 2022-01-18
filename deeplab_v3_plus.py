@@ -11,7 +11,7 @@ from tensorflow.python.training import moving_averages
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
-classes = 6
+classes = 9
 
 class Deeplab_v3():
     def __init__(self,

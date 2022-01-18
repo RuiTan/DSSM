@@ -144,5 +144,5 @@ if __name__ == '__main__':
                 summary_writer.add_summary(test_summary, step)
                 summary_writer.flush()
 
-            if step == 1000 or step == 40000 or step == 50000: 
+            if step == 1000 or step == 40000 or step == 50000:
                 saver.save(sess, args.save_model, global_step=step)

@@ -1,0 +1,60 @@
+nohup: ignoring input
+WARNING:tensorflow:From /home/tanrui@corp.sse.tongji.edu.cn/.conda/envs/tanrui/lib/python3.6/site-packages/tensorflow_core/python/compat/v2_compat.py:65: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+Traceback (most recent call last):
+  File "train.py", line 19, in <module>
+    class args:
+  File "train.py", line 29, in args
+    save_model = 'model/' + ds + model_name
+NameError: name 'ds' is not defined
+nohup: ignoring input
+WARNING:tensorflow:From /home/tanrui@corp.sse.tongji.edu.cn/.conda/envs/tanrui/lib/python3.6/site-packages/tensorflow_core/python/compat/v2_compat.py:65: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+batch_size           16
+lr                   0.0002
+test_display         100
+weight_decay         0.0005
+model_name           1216_rgbnir
+batch_norm_decay     0.95
+multi_scale          True
+gpu_num              1
+pretraining          False
+save_model           model/potsdam/1216_rgbnir
+start_step           1
+total_steps          50000
+WARNING:tensorflow:From /home/tanrui@corp.sse.tongji.edu.cn/tanrui/deeplabv3-Tensorflow/Test4/deeplab_v3.py:211: max_pooling2d (from tensorflow.python.layers.pooling) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use keras.layers.MaxPooling2D instead.
+WARNING:tensorflow:From /home/tanrui@corp.sse.tongji.edu.cn/.conda/envs/tanrui/lib/python3.6/site-packages/tensorflow_core/python/layers/pooling.py:311: Layer.apply (from tensorflow.python.keras.engine.base_layer) is deprecated and will be removed in a future version.
+Instructions for updating:
+Please use `layer.__call__` method instead.
+WARNING:tensorflow:From train.py:93: all_variables (from tensorflow.python.ops.variables) is deprecated and will be removed after 2017-03-02.
+Instructions for updating:
+Please use tf.global_variables instead.
+2020-12-17 18:06:51.223250: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA
+2020-12-17 18:06:51.249957: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 3000000000 Hz
+2020-12-17 18:06:51.251991: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x557a2bc46c60 executing computations on platform Host. Devices:
+2020-12-17 18:06:51.252035: I tensorflow/compiler/xla/service/service.cc:175]   StreamExecutor device (0): Host, Default Version
+2020-12-17 18:06:51.255863: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcuda.so.1
+2020-12-17 18:06:51.484457: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x557a2bb96af0 executing computations on platform CUDA. Devices:
+2020-12-17 18:06:51.484525: I tensorflow/compiler/xla/service/service.cc:175]   StreamExecutor device (0): GeForce RTX 2080 Ti, Compute Capability 7.5
+2020-12-17 18:06:51.486228: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1618] Found device 0 with properties: 
+name: GeForce RTX 2080 Ti major: 7 minor: 5 memoryClockRate(GHz): 1.755
+pciBusID: 0000:17:00.0
+2020-12-17 18:06:51.486620: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcudart.so.10.0
+2020-12-17 18:06:51.488784: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcublas.so.10.0
+2020-12-17 18:06:51.490667: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcufft.so.10.0
+2020-12-17 18:06:51.491167: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcurand.so.10.0
+2020-12-17 18:06:51.493730: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcusolver.so.10.0
+2020-12-17 18:06:51.495724: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcusparse.so.10.0
+2020-12-17 18:06:51.500042: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcudnn.so.7
+2020-12-17 18:06:51.502078: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1746] Adding visible gpu devices: 0
+2020-12-17 18:06:51.502151: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcudart.so.10.0
+2020-12-17 18:06:51.504232: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1159] Device interconnect StreamExecutor with strength 1 edge matrix:
+2020-12-17 18:06:51.504249: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1165]      0 
+2020-12-17 18:06:51.504257: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1178] 0:   N 
+2020-12-17 18:06:51.506149: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1304] Created TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 10287 MB memory) -> physical GPU (device: 0, name: GeForce RTX 2080 Ti, pci bus id: 0000:17:00.0, compute capability: 7.5)
+/home/tanrui@corp.sse.tongji.edu.cn/.conda/envs/tanrui/lib/python3.6/site-packages/rasterio/__init__.py:221: NotGeoreferencedWarning: Dataset has no geotransform set. The identity matrix may be returned.
+  s = DatasetReader(path, driver=driver, sharing=sharing, **kwargs)
