@@ -4,3 +4,8 @@ logs/
 nohup_out/
 __pycache__
 *.log
+
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
