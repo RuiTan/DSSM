@@ -1,23 +1,14 @@
-import cv2
-from deeplab_v3_plus import Deeplab_v3
-from data_utils import DataSet
-from unet import Unet
+from network.deeplab_v3_plus import Deeplab_v3
+from util.data_utils import DataSet
 
-import os
 import tensorflow.compat.v1 as tf
-from tqdm import tqdm
 
 tf.disable_v2_behavior()
 
 import pandas as pd
-import numpy as np
-from color_utils import color_predicts
-from predicts_utils import *
+from util.predicts_utils import *
 
-from metric_utils import iou
-
-# 使用那一块显卡
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+from util.metric_utils import iou
 
 class args:
     batch_size = 16
@@ -29,7 +20,7 @@ class args:
     batch_norm_decay = 0.95
     multi_scale = True # 是否多尺度预测
     pretraining = False
-    save_model = 'model/' + model_name
+    save_model = 'network/' + model_name
     start_step = 1
     total_steps = 50000
     predict = False
@@ -65,7 +56,7 @@ data_path_df = data_path_df.sample(frac=1) # 第一次打乱
 dataset = DataSet(image_path=data_path_df['image'].values, label_path=data_path_df['label'].values)
 
 model = Deeplab_v3(batch_norm_decay=args.batch_norm_decay)
-# model = Unet(batch_norm_decay=args.batch_norm_decay)
+# network = Unet(batch_norm_decay=args.batch_norm_decay)
 
 all_grads = []
 lr = tf.placeholder(tf.float32, )
@@ -117,14 +108,14 @@ config.allow_soft_placement = True
 with tf.Session(config=config) as sess:
     init.run()
     if args.pretraining:
-        saver = tf.train.import_meta_graph('model/'+args.model_name+'-40000.meta')
-        saver.restore(sess, 'model/'+args.model_name+'-40000')
+        saver = tf.train.import_meta_graph('network/'+args.model_name+'-40000.meta')
+        saver.restore(sess, 'network/'+args.model_name+'-40000')
         logits_prob = tf.get_default_graph().get_tensor_by_name("logits_prob:0")
         is_training = tf.get_default_graph().get_tensor_by_name("is_training:0")
 
     elif args.predict:
-        saver = tf.train.import_meta_graph('model/'+args.model_name+'-50000.meta')
-        saver.restore(sess, 'model/'+args.model_name+'-50000')
+        saver = tf.train.import_meta_graph('network/'+args.model_name+'-50000.meta')
+        saver.restore(sess, 'network/'+args.model_name+'-50000')
         all_predicts = None
         for i in range(args.N_GPUS):
             predict = tf.get_default_graph().get_tensor_by_name('predicts' + str(i) + ":0")

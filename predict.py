@@ -1,18 +1,11 @@
-from deeplab_v3_plus_weighted import Deeplab_v3
-from data_utils import DataSet
+from network.deeplab_v3_plus_weighted import Deeplab_v3
 
 import cv2
 import os
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-import pandas as pd
-import numpy as np
-from color_utils import color_predicts
-from predicts_utils import total_image_predict
-from predicts_utils import test_images_predict
-from result import crops_predict
+from util.predicts_utils import total_image_predict
 
-from metric_utils import iou
 from tqdm import tqdm
 
 ds = 'zurich/'
@@ -78,8 +71,8 @@ with tf.Session(config=config) as sess:
 
     if args.pretraining:
         print(args.model_name)
-        saver = tf.train.import_meta_graph('model/'+args.model_name+'.meta')
-        saver.restore(sess, 'model/'+args.model_name)
+        saver = tf.train.import_meta_graph('network/'+args.model_name+'.meta')
+        saver.restore(sess, 'network/'+args.model_name)
         logits_prob = tf.get_default_graph().get_tensor_by_name("logits_prob:0")
         is_training = tf.get_default_graph().get_tensor_by_name("is_training:0")
 

@@ -3,20 +3,12 @@ import os
 import cv2
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
-from libtiff import TIFF
-from metric_utils import iou
-from predicts_utils import total_image_predict
-from predicts_utils import predict
-from predicts_utils import multi_scale_predict
-from predicts_utils import test_images_predict
-from deeplab_v3 import Deeplab_v3
-from data_utils import DataSet
-from color_utils import color_predicts
-import pandas as pd
+from util.metric_utils import iou
+from util.predicts_utils import multi_scale_predict
+from util.color_utils import color_predicts
 import numpy as np
 from tqdm import tqdm
-import datetime
-from predicts_utils import read_tiff_img
+from util.predicts_utils import read_tiff_img
 
 ds = 'potsdam/'
 model_path = '1222_nir-50000'
@@ -178,13 +170,13 @@ def write_predict_result(filename: str, img: str, label: str, predict_func, inpu
     # return list(result.values())
 
 
-saver = tf.train.import_meta_graph('model/' + args.model_name + '.meta')
+saver = tf.train.import_meta_graph('network/' + args.model_name + '.meta')
 # predict_prefix = 'potsdam_scale_0810/'
 predict_path = '../../data/' + ds + 'result/' + model_path + '/'
 if not os.path.exists(predict_path): os.makedirs(predict_path)
 
 with tf.Session() as sess:
-    saver.restore(sess, 'model/' + args.model_name + '')
+    saver.restore(sess, 'network/' + args.model_name + '')
 
     logits_prob = tf.get_default_graph().get_tensor_by_name("logits_prob:0")
     is_training = tf.get_default_graph().get_tensor_by_name("is_training:0")

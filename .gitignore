@@ -1,5 +1,6 @@
 ckpts/
 dataset/
 logs/
-model/
+nohup_out/
 __pycache__
+*.log

@@ -1,5 +1,5 @@
 import os
-from predicts_utils import read_tiff_img
+from util.predicts_utils import read_tiff_img
 import numpy as np
 
 data_home = '../../data/potsdam/'

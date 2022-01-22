@@ -1,9 +1,3 @@
-"""ResNet model.
-Related papers:121
-https://arxiv.org/pdf/1603.05027v2.pdf
-https://arxiv.org/pdf/1512.03385v1.pdf
-https://arxiv.org/pdf/1605.07146v1.pdf
-"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -29,17 +23,12 @@ class Deeplab_v3():
         global_ave = self._global_avg_pool(input)
         fc_relu = tf.layers.dense(global_ave, global_ave.shape[1].value/dimention_reduction, activation=tf.nn.relu)
         fc_sigmod = tf.layers.dense(fc_relu, fc_relu.shape[1].value, activation=tf.nn.sigmoid)
-        # weighted_x = tf.concat([tf.expand_dims(input[:,:,:,0] * x[:,0], axis=3),
-        #                   tf.expand_dims(input[:,:,:,1] * x[:,1], axis=3),
-        #                   tf.expand_dims(input[:,:,:,2] * x[:,2], axis=3),
-        #                   tf.expand_dims(input[:,:,:,3] * x[:,3], axis=3)],
-        #                 axis=3, name='weighted_x')
         fc_sigmod = tf.reshape(fc_sigmod, [-1,1,1,4])
         weighted_x = input * fc_sigmod
         return weighted_x
 
     def forward_pass(self, x):
-        """Build the core model within the graph"""
+        """Build the core network within the graph"""
         with tf.variable_scope('resnet_v2_50', reuse=tf.AUTO_REUSE):
             size = tf.shape(x)[1:3]
 

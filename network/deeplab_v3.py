@@ -1,17 +1,15 @@
-"""ResNet model.
-Related papers:
-https://arxiv.org/pdf/1603.05027v2.pdf
-https://arxiv.org/pdf/1512.03385v1.pdf
-https://arxiv.org/pdf/1605.07146v1.pdf
-"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from tensorflow.python.training import moving_averages
+
+
 import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
 
 classes = 9
+type = 2
+input_type = ['rgb', 'nir', 'rgbnir']
+ssm = True
 
 class Deeplab_v3():
     def __init__(self,
@@ -27,24 +25,38 @@ class Deeplab_v3():
         self.strides = [2, 2, 1, 1]
         self.n = [3, 4, 6, 3]
 
-    def forward_pass(self, x):
-        """Build the core model within the graph"""
-        with tf.variable_scope('resnet_v2_50', reuse=tf.AUTO_REUSE):
-            x = tf.layers.batch_normalization(x, training=self._is_training)
-            size = tf.shape(x)[1:3]
+    def SSM(self, x):
+        r = tf.expand_dims(x[:,:,:,0], 3)
+        r = self._conv(r, 7, 64, 2, 'ssm_1', False, False)
+        g = tf.expand_dims(x[:,:,:,1], 3)
+        g = self._conv(g, 7, 64, 2, 'ssm_2', False, False)
+        b = tf.expand_dims(x[:,:,:,2], 3)
+        b = self._conv(b, 7, 64, 2, 'ssm_3', False, False)
+        nir = tf.expand_dims(x[:,:,:,3], 3)
+        nir = self._conv(nir, 7, 64, 2, 'ssm_4', False, False)
+        x = tf.concat([r,g,b,nir], axis=3, name='ssm_concat')
+        return self._conv(x, 1, 64, 1, 'ssm_5', False, False)
 
-            x1 = self._conv(tf.expand_dims(x[:, :, :, 0], 3), 7, 64, 2, 'conv1_1', False, False)
-            x2 = self._conv(tf.expand_dims(x[:, :, :, 1], 3), 7, 64, 2, 'conv1_2', False, False)
-            x3 = self._conv(tf.expand_dims(x[:, :, :, 2], 3), 7, 64, 2, 'conv1_3', False, False)
-            x4 = self._conv(tf.expand_dims(x[:, :, :, 3], 3), 7, 64, 2, 'conv1_4', False, False)
-            x = tf.concat([x1, x2, x3, x4], axis=3, name='merge_channel')
+    def forward_pass(self, x):
+        """Build the core network within the graph"""
+        with tf.variable_scope('resnet_v2_50', reuse=tf.AUTO_REUSE):
+            size = tf.shape(x)[1:3]
+            if type == 0:
+                x = x[:,:,:,0:3]
+            elif type == 1:
+                x = x[:,:,:,3]
+                x = tf.expand_dims(x, 3)
+            if ssm:
+                x = self.SSM(x)
+            # x = x - [_R_MEAN, _G_MEAN, _B_MEAN]
+
+            x = self._conv(x, 7, 64, 2, 'conv1', False, False)
             x = self._max_pool(x, 3, 2, 'max')
             low_level_feature = x
             low_level_feature = self._conv(low_level_feature, 1, 48, 1, 'low_level_feature')
             low_level_feature_size = tf.shape(low_level_feature)[1:3]
 
             res_func = self._bottleneck_residual_v2
-            # low_level_features = [low_level_feature]
             for i in range(4):
                 with tf.variable_scope('block%d' % (i + 1)):
                     for j in range(self.n[i]):
@@ -55,27 +67,20 @@ class Deeplab_v3():
                                 x = res_func(x, self.filters[i+1], self.filters[i+1], self.strides[i])
                             else:
                                 x = res_func(x, self.filters[i+1], self.filters[i+1], 1)
-                # low_level_features.append(x)
                 tf.logging.info('the shape of features after block%d is %s' % (i+1, x.get_shape()))
-
-        # for i,llf in enumerate(low_level_features):
-        #     if i >= 1:
-        #         low_level_features[i] = self._conv(llf, 1, 256, 1, scope='llf_' + str(i))
 
         # DeepLab_v3的部分
         with tf.variable_scope('DeepLab_v3', reuse=tf.AUTO_REUSE):
-            block_result = self._conv(x, 1, 48, 1, scope='block_result')
-            block_result = tf.image.resize_bilinear(block_result, low_level_feature_size, name='upsample1')
             x = self._atrous_spatial_pyramid_pooling(x)
-            x = tf.image.resize_bilinear(x, low_level_feature_size, name='upsample2')
-            net = tf.concat([x, block_result, low_level_feature], axis=3, name='concat')
+            upsample1 = tf.image.resize_bilinear(x, low_level_feature_size, name='upsampling1')
+            net = tf.concat([upsample1, low_level_feature], axis=3, name='concat')
             net = self._conv(net, 3, 256, 1, 'conv_3x3_1')
             net = self._conv(net, 3, 256, 1, 'conv_3x3_2')
-            x = self._conv(net, 1, 9, 1, 'logits', False, False)
+            x = self._conv(net, 1, classes, 1, 'logits', False, False)
             x = tf.image.resize_bilinear(x, size)
             return x
-
-
+    def _A_ASPP(self):
+        pass
     def _atrous_spatial_pyramid_pooling(self, x):
         """
         空洞空间金字塔池化
