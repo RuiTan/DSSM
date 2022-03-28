@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+=======
+import os
+from util.predicts_utils import read_tiff_img
+import numpy as np
+>>>>>>> 4c0e5a013738e536521711a5d9794385e17a599a
 
 import numpy as np
 import tensorflow as tf

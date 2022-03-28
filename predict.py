@@ -1,5 +1,5 @@
-from deeplab_v3_plus import Deeplab_v3
-from data_utils import DataSet
+from network.deeplab_v3_plus import Deeplab_v3
+from util.data_utils import DataSet
 
 import cv2
 import os
@@ -7,10 +7,10 @@ import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 import pandas as pd
 import numpy as np
-from color_utils import color_predicts
-from predicts_utils import total_image_predict_multigpu
+from util.color_utils import color_predicts
+from util.predicts_utils import total_image_predict_multigpu
 
-from metric_utils import iou
+from util.metric_utils import iou
 from tqdm import tqdm, trange
 import sys, getopt
 
@@ -33,7 +33,7 @@ class args:
     inputImage = ''
     output = ''
 
-opts, _ = getopt.getopt(sys.argv[1:], '-i:-o:-g:', ['inputImage', 'output', 'gpu'])
+opts, _ = getopt.getopt(sys.argv[1:], '-i:-o:-g:-m:', ['inputImage', 'output', 'gpu', 'model'])
 for opt, arg in opts:
     if opt in ('-i', '--inputImage'):
         args.inputImage = arg
@@ -41,6 +41,8 @@ for opt, arg in opts:
         args.output = arg
     if opt in ('-g', '--gpu'):
         args.gpu_num = arg
+    if opt in ('-m', '--model'):
+        args.model_name = arg
 print(opts)
 
 # 打印以下超参数
@@ -78,8 +80,8 @@ with tf.Session(config=config) as sess:
 
     if args.pretraining:
         print(args.model_name)
-        saver = tf.train.import_meta_graph('model/'+args.model_name+'.meta')
-        saver.restore(sess, 'model/'+args.model_name)
+        saver = tf.train.import_meta_graph(args.model_name+'.meta')
+        saver.restore(sess, args.model_name)
         logits_prob = tf.get_default_graph().get_tensor_by_name("logits_prob:0")
         is_training = tf.get_default_graph().get_tensor_by_name("is_training:0")
 

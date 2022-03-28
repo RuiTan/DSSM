@@ -1,5 +1,12 @@
 ckpts/
 dataset/
 logs/
+nohup_out/
 model/
 __pycache__
+*.log
+
+# General
+.DS_Store
+.AppleDouble
+.LSOverride

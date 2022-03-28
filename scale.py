@@ -1,11 +1,7 @@
-import os
-
 import numpy as np
-from predicts_utils import read_tiff_img
-from preprocess import write_tiff
+from util.predicts_utils import read_tiff_img
 from tqdm import tqdm
 import cv2
-
 
 def scale(image: np.ndarray, rate: int, channel=4):
     width = image.shape[0]

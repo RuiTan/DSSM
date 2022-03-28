@@ -1,125 +1,66 @@
-"""ResNet model.
-Related papers:
-https://arxiv.org/pdf/1603.05027v2.pdf
-https://arxiv.org/pdf/1512.03385v1.pdf
-https://arxiv.org/pdf/1605.07146v1.pdf
-"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
 from tensorflow.python.training import moving_averages
 
-
-import tensorflow.compat.v1 as tf
-
-classes = 9
-type = 1
-input_type = ['rgb', 'nir', 'rgbnir']
-
-class Deeplab_v3():
+class Unet():
     def __init__(self,
                  batch_norm_decay=0.99,
-                 batch_norm_epsilon=1e-3,):
-
+                 batch_norm_epsilon=1e-3,
+                 classes=9
+                 ):
+        self._is_training = tf.placeholder(tf.bool, name='is_training')
+        self.num_class = classes
         self._batch_norm_decay = batch_norm_decay
         self._batch_norm_epsilon = batch_norm_epsilon
-        # 模型训练开关占位符
-        self._is_training = tf.placeholder(tf.bool, name='is_training')
-        self.num_class = 9
-        self.filters = [64, 256, 512, 1024, 2048]
-        self.strides = [2, 2, 1, 1]
-        self.n = [3, 4, 6, 3]
 
     def forward_pass(self, x):
-        """Build the core model within the graph"""
-        with tf.variable_scope('resnet_v2_50', reuse=tf.AUTO_REUSE):
-            size = tf.shape(x)[1:3]
-            if type == 0:
-                x = x[:,:,:,0:3]
-            elif type == 1:
-                x = x[:,:,:,3]
-                x = tf.expand_dims(x, 3)
-            # x = x - [_R_MEAN, _G_MEAN, _B_MEAN]
+        with tf.variable_scope('down_sampling', reuse=tf.AUTO_REUSE):
+            x = tf.layers.batch_normalization(x, training=self._is_training)
+            conv1 = self._conv(tf.expand_dims(x[:,:,:,0], 3), 3, 64, 1, 'conv1_1', True, True)
+            conv1 = self._conv(tf.expand_dims(conv1[:,:,:,0], 3), 3, 64, 1, 'conv1_2', True, True)
+            pool1 = self._max_pool(conv1, 2, 2, 'pool_1')
+            conv2 = self._conv(tf.expand_dims(pool1[:, :, :, 0], 3), 3, 128, 1, 'conv2_1', True, True)
+            conv2 = self._conv(tf.expand_dims(conv2[:, :, :, 0], 3), 3, 128, 1, 'conv2_2', True, True)
+            pool2 = self._max_pool(conv2, 2, 2, 'pool_2')
+            conv3 = self._conv(tf.expand_dims(pool2[:, :, :, 0], 3), 3, 256, 1, 'conv3_1', True, True)
+            conv3 = self._conv(tf.expand_dims(conv3[:, :, :, 0], 3), 3, 256, 1, 'conv3_2', True, True)
+            pool3 = self._max_pool(conv3, 2, 2, 'pool_3')
+            conv4 = self._conv(tf.expand_dims(pool3[:, :, :, 0], 3), 3, 512, 1, 'conv4_1', True, True)
+            conv4 = self._conv(tf.expand_dims(conv4[:, :, :, 0], 3), 3, 512, 1, 'conv4_2', True, True)
+            drop4 = tf.nn.dropout(conv4, rate=0.5, )
+            pool4 = self._max_pool(drop4, 2, 2, 'pool_4')
 
-            x = self._conv(x, 7, 64, 2, 'conv1', False, False)
-            x = self._max_pool(x, 3, 2, 'max')
-            low_level_feature = x
-            low_level_feature = self._conv(low_level_feature, 1, 48, 1, 'low_level_feature')
-            low_level_feature_size = tf.shape(low_level_feature)[1:3]
+            conv5 = self._conv(tf.expand_dims(pool4[:, :, :, 0], 3), 3, 1024, 1, 'conv5_1', True, True)
+            conv5 = self._conv(tf.expand_dims(conv5[:, :, :, 0], 3), 3, 1024, 1, 'conv5_2', True, True)
+            drop5 = tf.nn.dropout(conv5, rate=0.5, )
 
-            res_func = self._bottleneck_residual_v2
-            for i in range(4):
-                with tf.variable_scope('block%d' % (i + 1)):
-                    for j in range(self.n[i]):
-                        with tf.variable_scope('unit_%d' % (j + 1)):
-                            if j == 0:
-                                x = res_func(x, self.filters[i], self.filters[i+1], 1)
-                            elif j == self.n[i] - 1:
-                                x = res_func(x, self.filters[i+1], self.filters[i+1], self.strides[i])
-                            else:
-                                x = res_func(x, self.filters[i+1], self.filters[i+1], 1)
-                tf.logging.info('the shape of features after block%d is %s' % (i+1, x.get_shape()))
+            up6 = tf.image.resize_bilinear(drop5, tf.shape(drop5)[1:3]*2, name='up6')
+            up6 = self._conv(tf.expand_dims(up6[:,:,:,0], 3), 2, 512, 1, 'up6_conv', True, True)
+            merge6 = tf.concat([drop4, up6], axis=3, name='merge6')
+            conv6 = self._conv(tf.expand_dims(merge6[:, :, :, 0], 3), 3, 512, 1, 'conv6_1', True, True)
+            conv6 = self._conv(tf.expand_dims(conv6[:, :, :, 0], 3), 3, 512, 1, 'conv6_2', True, True)
 
-        # DeepLab_v3的部分
-        with tf.variable_scope('DeepLab_v3', reuse=tf.AUTO_REUSE):
-            x = self._atrous_spatial_pyramid_pooling(x)
-            upsample1 = tf.image.resize_bilinear(x, low_level_feature_size, name='upsampling1')
-            net = tf.concat([upsample1, low_level_feature], axis=3, name='concat')
-            net = self._conv(net, 3, 256, 1, 'conv_3x3_1')
-            net = self._conv(net, 3, 256, 1, 'conv_3x3_2')
-            x = self._conv(net, 1, classes, 1, 'logits', False, False)
-            x = tf.image.resize_bilinear(x, size)
-            return x
-    def _A_ASPP(self):
-        pass
-    def _atrous_spatial_pyramid_pooling(self, x):
-        """
-        空洞空间金字塔池化
-        """
-        with tf.variable_scope('ASSP_layers'):
+            up7 = tf.image.resize_bilinear(conv6, tf.shape(conv6)[1:3]*2, name='up7')
+            up7 = self._conv(tf.expand_dims(up7[:,:,:,0], 3), 2, 256, 1, 'up7_conv', True, True)
+            merge7 = tf.concat([conv3, up7], axis=3, name='merge7')
+            conv7 = self._conv(tf.expand_dims(merge7[:, :, :, 0], 3), 3, 256, 1, 'conv7_1', True, True)
+            conv7 = self._conv(tf.expand_dims(conv7[:, :, :, 0], 3), 3, 256, 1, 'conv7_2', True, True)
 
-            feature_map_size = tf.shape(x)
+            up8 = tf.image.resize_bilinear(conv7, tf.shape(conv7)[1:3] * 2, name='up8')
+            up8 = self._conv(tf.expand_dims(up8[:, :, :, 0], 3), 2, 128, 1, 'up8_conv', True, True)
+            merge8 = tf.concat([conv2, up8], axis=3, name='merge8')
+            conv8 = self._conv(tf.expand_dims(merge8[:, :, :, 0], 3), 3, 128, 1, 'conv8_1', True, True)
+            conv8 = self._conv(tf.expand_dims(conv8[:, :, :, 0], 3), 3, 128, 1, 'conv8_2', True, True)
 
-            image_level_features = tf.reduce_mean(x, [1, 2], keep_dims=True)
-            image_level_features = self._conv(image_level_features, 1, 256, 1, 'global_avg_pool', True)
-            image_level_features = tf.image.resize_bilinear(image_level_features, (feature_map_size[1],
-                                                                                   feature_map_size[2]))
+            up9 = tf.image.resize_bilinear(conv8, tf.shape(conv8)[1:3] * 2, name='up9')
+            up9 = self._conv(tf.expand_dims(up9[:, :, :, 0], 3), 2, 64, 1, 'up9_conv', True, True)
+            merge9 = tf.concat([conv1, up9], axis=3, name='merge9')
+            conv9 = self._conv(tf.expand_dims(merge9[:, :, :, 0], 3), 3, 64, 1, 'conv9_1', True, True)
+            conv9 = self._conv(tf.expand_dims(conv9[:, :, :, 0], 3), 3, 64, 1, 'conv9_2', True, True)
 
-            at_pool1x1   = self._conv(x, kernel_size=1, filters=256, strides=1, scope='assp1', batch_norm=True)
-            at_pool3x3_1 = self._conv(x, kernel_size=3, filters=256, strides=1, scope='assp2', batch_norm=True, rate=6)
-            at_pool3x3_2 = self._conv(x, kernel_size=3, filters=256, strides=1, scope='assp3', batch_norm=True, rate=12)
-            at_pool3x3_3 = self._conv(x, kernel_size=3, filters=256, strides=1, scope='assp4', batch_norm=True, rate=18)
-
-            net = tf.concat((image_level_features, at_pool1x1, at_pool3x3_1, at_pool3x3_2, at_pool3x3_3), axis=3)
-
-            net = self._conv(net, kernel_size=1, filters=256, strides=1, scope='concat', batch_norm=True)
-
-            return net
-
-    def _bottleneck_residual_v2(self,
-                                x,
-                                in_filter,
-                                out_filter,
-                                stride,):
-
-        """Bottleneck residual unit with 3 sub layers, plan B shortcut."""
-
-        with tf.variable_scope('bottleneck_v2'):
-            origin_x = x
-            with tf.variable_scope('preact'):
-                preact = self._batch_norm(x)
-                preact = self._relu(preact)
-
-            residual = self._conv(preact, 1, out_filter // 4, stride, 'conv1', True, True)
-            residual = self._conv(residual, 3, out_filter // 4, 1, 'conv2', True, True)
-            residual = self._conv(residual, 1, out_filter, 1, 'conv3', False, False)
-
-            if in_filter != out_filter:
-                short_cut = self._conv(preact, 1, out_filter, stride, 'shortcut', False, False)
-            else:
-                short_cut = self._subsample(origin_x, stride, 'shortcut')
-            x = tf.add(residual, short_cut)
-            return x
+            conv10 = self._conv(tf.expand_dims(conv9[:, :, :, 0], 3), 1, 9, 1, 'conv10', True, False)
+            output = tf.nn.softmax(conv10)
+            return output
 
     def _conv(self,
               x,

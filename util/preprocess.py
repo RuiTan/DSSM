@@ -6,7 +6,7 @@ from libtiff import TIFF
 from tqdm import tqdm
 import pandas as pd
 import os
-from predicts_utils import read_tiff_img
+from util.predicts_utils import read_tiff_img
 
 
 size = 256

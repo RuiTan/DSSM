@@ -1,5 +1,5 @@
-from deeplab_v3 import Deeplab_v3
-from data_utils import DataSet
+from network.deeplab_v3 import Deeplab_v3
+from util.data_utils import DataSet
 
 
 import os
@@ -8,11 +8,8 @@ tf.disable_v2_behavior()
 
 import pandas as pd
 import numpy as np
-from color_utils import color_predicts
-from predicts_utils import total_image_predict
-from predicts_utils import test_images_predict
 
-from metric_utils import iou
+from util.metric_utils import iou
 
 ds='zurich/'
 
@@ -26,7 +23,7 @@ class args:
     multi_scale = True # 是否多尺度预测
     gpu_num = 1
     pretraining = False
-    save_model = 'model/' + ds + model_name
+    save_model = 'network/' + ds + model_name
     start_step = 1
     total_steps = 50000
 
@@ -55,22 +52,8 @@ if __name__ == '__main__':
     logits_prob = tf.nn.softmax(logits=logits, name='logits_prob')
     predicts = tf.argmax(logits, axis=-1, name='predicts')
 
-    # variables_to_restore = tf.trainable_variables(scope='resnet_v2_50')
-
-    # finetune resnet_v2_50的参数(block1到block4)
-    # restorer = tf.train.Saver(variables_to_restore)
-    # cross_entropy
     cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=label))
 
-    # 只将weight加入到weight_decay中
-    # https://arxiv.org/pdf/1807.11205.pdf
-    # weight_for_weightdecay = []
-    # for var in tf.trainable_variables():
-    #     if var.name.__contains__('weight'):
-    #         weight_for_weightdecay.append(var)
-    #         print(var.op.name)
-    #     else:
-    #         continue
     # l2_norm l2正则化
     with tf.name_scope('weight_decay'):
         l2_loss = args.weight_decay * tf.add_n(
@@ -100,8 +83,8 @@ if __name__ == '__main__':
         graph = tf.get_default_graph()
 
         if args.pretraining:
-            saver = tf.train.import_meta_graph('model/' + args.model_name + '-40000.meta')
-            saver.restore(sess, 'model/' + args.model_name + '-40000')
+            saver = tf.train.import_meta_graph('network/' + args.model_name + '-40000.meta')
+            saver.restore(sess, 'network/' + args.model_name + '-40000')
             logits_prob = tf.get_default_graph().get_tensor_by_name("logits_prob:0")
             is_training = tf.get_default_graph().get_tensor_by_name("is_training:0")
 

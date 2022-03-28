@@ -4,8 +4,18 @@ from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from libtiff import TIFF
 # from preprocess import tif16_to_tif8
-from predicts_utils import read_tiff_img
 
+def read_tiff_img(address):
+    """
+    读取指定路径的tiff文件，并返回对应numpy array和图像metadata
+    :param address:
+    :return:
+    """
+    with rasterio.open(address) as f:
+        metadata = f.profile
+        result = np.transpose(f.read(tuple(np.arange(metadata['count']) + 1)), [1, 2, 0])
+        f.close()
+    return result, metadata
 
 class DataSet():
     '''
