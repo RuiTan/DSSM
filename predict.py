@@ -1,4 +1,4 @@
-from deeplab_v3_plus_weighted import Deeplab_v3
+from deeplab_v3_plus import Deeplab_v3
 from data_utils import DataSet
 
 import cv2
@@ -8,15 +8,17 @@ tf.disable_v2_behavior()
 import pandas as pd
 import numpy as np
 from color_utils import color_predicts
-from predicts_utils import total_image_predict
-from predicts_utils import test_images_predict
-from result import crops_predict
+from predicts_utils import total_image_predict_multigpu
 
 from metric_utils import iou
-from tqdm import tqdm
+from tqdm import tqdm, trange
+import sys, getopt
 
-ds = 'zurich/'
-model_path = ds + '1216_rgbnir-50000'
+# ds = 'zurich/'
+# model_path = ds + '1216_rgbnir-50000'
+ds = 'potsdam/'
+model_path = ds + '1222_rgbnir_plus-50000'
+
 
 class args:
     batch_size = 16
@@ -26,9 +28,20 @@ class args:
     model_name = model_path
     batch_norm_decay = 0.95
     multi_scale = False  # 是否多尺度预测
-    gpu_num = 1
+    gpu_num = 0
     pretraining = True
+    inputImage = ''
+    output = ''
 
+opts, _ = getopt.getopt(sys.argv[1:], '-i:-o:-g:', ['inputImage', 'output', 'gpu'])
+for opt, arg in opts:
+    if opt in ('-i', '--inputImage'):
+        args.inputImage = arg
+    if opt in ('-o', '--output'):
+        args.output = arg
+    if opt in ('-g', '--gpu'):
+        args.gpu_num = arg
+print(opts)
 
 # 打印以下超参数
 for key in args.__dict__:
@@ -37,7 +50,7 @@ for key in args.__dict__:
         print(key + ' ' * offset, args.__dict__[key])
 
 # 使用那一块显卡
-os.environ["CUDA_VISIBLE_DEVICES"] = "%d" % args.gpu_num
+os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_num
 
 model = Deeplab_v3(batch_norm_decay=args.batch_norm_decay)
 
@@ -53,19 +66,6 @@ logits_prob = tf.nn.softmax(logits=logits, name='logits_prob')
 with tf.name_scope('weight_decay'):
     l2_loss = args.weight_decay * tf.add_n(
         [tf.nn.l2_loss(tf.cast(v, tf.float32)) for v in tf.trainable_variables()])
-#
-# optimizer = tf.train.AdamOptimizer(learning_rate=lr)
-# loss = cross_entropy + l2_loss
-#
-# update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-# # 计算梯度
-# grads = optimizer.compute_gradients(loss=loss, var_list=tf.trainable_variables())
-#
-# # 更新梯度
-# apply_gradient_op = optimizer.apply_gradients(grads_and_vars=grads, global_step=tf.train.get_or_create_global_step())
-# batch_norm_updates_op = tf.group(*tf.get_collection(tf.GraphKeys.UPDATE_OPS))
-# train_op = tf.group(apply_gradient_op, batch_norm_updates_op)
-
 saver = tf.train.Saver(tf.all_variables())
 
 config = tf.ConfigProto()
@@ -83,20 +83,25 @@ with tf.Session(config=config) as sess:
         logits_prob = tf.get_default_graph().get_tensor_by_name("logits_prob:0")
         is_training = tf.get_default_graph().get_tensor_by_name("is_training:0")
 
-        origin_path = '../../data/' + ds
-        images = os.listdir(origin_path + 'images/')
-        for i in tqdm(images):
-            result = total_image_predict(
-                origin_path + 'images/' + i + '.tif',
+        result = total_image_predict_multigpu(
+                args.inputImage,
                 image,
                 is_training,
                 logits_prob,
                 sess,
                 args.multi_scale
             )
-            cv2.imwrite(origin_path+'predict/'+i+'.png',result)
-            # labels = [10, 32, 64, 96, 128, 160, 192, 224, 255]
-            # label = result
-            # for j in range(len(labels)):
-            #     label[label == j] = labels[j]
-            # cv2.imwrite(origin_path+'result/'+i+'_2.png', label)
+        cv2.imwrite(args.output, color_predicts(result))
+
+        # origin_path = '../../data/' + ds
+        # images = os.listdir(origin_path + 'images/')
+        # for i in tqdm(images):
+        #     result = total_image_predict(
+        #         origin_path + 'images/' + i + '.tif',
+        #         image,
+        #         is_training,
+        #         logits_prob,
+        #         sess,
+        #         args.multi_scale
+        #     )
+        #     cv2.imwrite(origin_path+'predict/'+i+'.png',result)

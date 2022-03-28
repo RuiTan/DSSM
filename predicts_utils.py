@@ -6,7 +6,7 @@ import numpy as np
 import rasterio
 import tensorflow.compat.v1 as tf
 from libtiff import TIFF
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 size = 256
 batch = 64
@@ -147,7 +147,8 @@ def total_image_predict_multigpu(ori_image_path: str,
     # 对每个图像块预测
     # predict
     batches = int(len(image_list)/batch) + 1
-    for i in tqdm(range(batches)):
+    for i in trange(batches, desc='batch:', colour='blue'):
+    # for i in tqdm(range(batches)):
         image_batch = np.array(image_list[i*batch:(i+1)*batch])
         feed_dict = {input_placeholder: image_batch,
                      is_training_placeholder: False}
@@ -159,9 +160,10 @@ def total_image_predict_multigpu(ori_image_path: str,
         else:
             predict_list = np.concatenate((predict_list, predict),axis=0)
     predict_list = np.array(predict_list)
+    print(predict_list.shape)
     # 将预测后的图像块再拼接起来
     count_temp = 0
-    tmp = np.ones([ori_image.shape[0], ori_image.shape[1]])
+    tmp = np.ones([ori_image.shape[0], ori_image.shape[1], 9])
     for h in range(h_step):
         for w in range(w_step):
             tmp[
@@ -175,6 +177,11 @@ def total_image_predict_multigpu(ori_image_path: str,
         tmp[h_rest:, (w * 256):(w * 256 + 256)] = predict_list[count_temp][h_rest:, :]
         count_temp += 1
     tmp[h_rest:, w_rest:] = predict_list[count_temp][h_rest:, w_rest:]
+    l = tmp.shape[0]
+    tmp = np.reshape(tmp, [l*l, tmp.shape[2]])
+    tmp = [np.argmax(i) for i in tmp]
+    tmp = np.array(tmp)
+    tmp = np.reshape(tmp, [l, l])
     return tmp
 
 def total_image_predict(ori_image_path: str,
